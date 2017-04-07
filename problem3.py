@@ -43,7 +43,37 @@ def train_test_splitter(features, labels):
     return f_train, f_test, l_train, l_test
 
 
+def graph_3d_my_data(data):
+    """
+    This function 3D graphs my data.
+    :param data: Graphed data with three columns
+    :return: None
+    """
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    n = data.shape[0]
+    for i in range(0, n):
+        xs = data['A'][i]
+        ys = data['B'][i]
+        zs = data['label'][i]
+        if zs == 0:
+            a = 'r'
+            b = 'o'
+        else:
+            a = 'b'
+            b = '^'
+        ax.scatter(xs, ys, zs, c=a, marker=b)
+    ax.set_xlabel('A')
+    ax.set_ylabel('B')
+    ax.set_zlabel('Labels')
+    plt.show()
+    return
+
+
 if __name__ == "__main__":
     datum = csv_dataset_reader()
+    graph_3d_my_data(datum)
     feats, lab = features_labels_extractor(datum)
     feats_train, lab_test, feats_train, lab_test = train_test_splitter(feats, lab)
