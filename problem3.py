@@ -16,6 +16,7 @@ def features_labels_extractor(data):
     """
     features = data.as_matrix(columns=['A', 'B'])
     labels = data.as_matrix(columns=['label'])
+    labels = labels.flatten()
     return features, labels
 
 
@@ -72,8 +73,52 @@ def graph_3d_my_data(data):
     return
 
 
+def linear_svm_classification(training_set_features, testing_set_features, training_set_labels, testing_set_labels):
+    """
+    This function conducts a linear SVM classification with 5 folds CV using a grid search to fit to best learning rate
+    :param training_set_features: multi-dimensional array representing training set features.
+    :param testing_set_features: multi-dimensional array representing testing set features.
+    :param training_set_labels: uni-dimensional array representing training set labels.
+    :param testing_set_labels: uni-dimensional array representing testing set labels.
+    :return: Three elements tuple respectively method used (String), best accuracy score on parameters grid in 5-folds 
+    CV (float), accuracy score on test set
+    """
+    from sklearn import svm
+    from sklearn.model_selection import GridSearchCV
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import accuracy_score
+    method = "svm_linear"
+    scaler = StandardScaler()
+    scaled_feats_train = scaler.fit_transform(training_set_features)
+    svr = svm.SVC(kernel='linear', random_state=10)
+    parameters = {'C': [0.1, 0.5, 1, 5, 10, 50, 100]}
+    clf = GridSearchCV(svr, parameters, cv=5, scoring='accuracy')
+    clf.fit(scaled_feats_train, training_set_labels)
+    scaled_feats_test = scaler.transform(testing_set_features)
+    predicted_lab_test = clf.predict(scaled_feats_test)
+    best_score = clf.best_score_
+    test_score = accuracy_score(testing_set_labels, predicted_lab_test, normalize=True)
+    return method, best_score, test_score
+
+
+def output_csv_writer(method, best_score, test_score):
+    """
+    This function writes an output in a file called output3.csv
+    :param method: The method used to build classification
+    :param best_score: Best accuracy score on parameters grid in 5-folds CV (float)
+    :param test_score: Accuracy score on test set
+    :return: None
+    """
+    with open('./output3.csv', 'a') as f:
+        f.write("%s,%f,%f\n" % (str(method), float(best_score), float(test_score)))
+    f.close()
+    return
+
+
 if __name__ == "__main__":
     datum = csv_dataset_reader()
-    graph_3d_my_data(datum)
+    # graph_3d_my_data(datum)
     feats, lab = features_labels_extractor(datum)
-    feats_train, lab_test, feats_train, lab_test = train_test_splitter(feats, lab)
+    feats_train, feats_test, lab_train, lab_test = train_test_splitter(feats, lab)
+    m, b_score, t_score = linear_svm_classification(feats_train, feats_test, lab_train, lab_test)
+    output_csv_writer(m, b_score, t_score)
