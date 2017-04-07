@@ -157,7 +157,31 @@ def rbf_svm_classification(training_set_features, testing_set_features, training
     predicted_lab_test = clf.predict(scaled_feats_test)
     best_score = clf.best_score_
     test_score = accuracy_score(testing_set_labels, predicted_lab_test, normalize=True)
-    print clf.best_params_
+    return method, best_score, test_score
+
+
+def logistic_classification(training_set_features, testing_set_features, training_set_labels, testing_set_labels):
+    """
+    This function conducts a logistic regression with 5 folds CV using a grid search to fit to best learning rate
+    :param training_set_features: multi-dimensional array representing training set features.
+    :param testing_set_features: multi-dimensional array representing testing set features.
+    :param training_set_labels: uni-dimensional array representing training set labels.
+    :param testing_set_labels: uni-dimensional array representing testing set labels.
+    :return: Three elements tuple respectively method used (String), best accuracy score on parameters grid in 5-folds 
+    CV (float), accuracy score on test set
+    """
+    from sklearn import linear_model
+    from sklearn.model_selection import GridSearchCV
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import accuracy_score
+    method = "logistic"
+    svr = linear_model.LogisticRegression()
+    parameters = {'C': [0.1, 0.5, 1, 5, 10, 50, 100]}
+    clf = GridSearchCV(svr, parameters, cv=5, scoring='accuracy')
+    clf.fit(training_set_features, training_set_labels)
+    predicted_lab_test = clf.predict(testing_set_features)
+    best_score = clf.best_score_
+    test_score = accuracy_score(testing_set_labels, predicted_lab_test, normalize=True)
     return method, best_score, test_score
 
 
@@ -186,3 +210,6 @@ if __name__ == "__main__":
     output_csv_writer(m, b_score, t_score)
     m, b_score, t_score = rbf_svm_classification(feats_train, feats_test, lab_train, lab_test)
     output_csv_writer(m, b_score, t_score)
+    m, b_score, t_score = logistic_classification(feats_train, feats_test, lab_train, lab_test)
+    output_csv_writer(m, b_score, t_score)
+    # print clf.best_params_
