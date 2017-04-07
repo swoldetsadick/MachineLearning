@@ -172,14 +172,42 @@ def logistic_classification(training_set_features, testing_set_features, trainin
     """
     from sklearn import linear_model
     from sklearn.model_selection import GridSearchCV
-    from sklearn.preprocessing import StandardScaler
     from sklearn.metrics import accuracy_score
     method = "logistic"
-    svr = linear_model.LogisticRegression()
+    svr = linear_model.LogisticRegression(random_state=10)
     parameters = {'C': [0.1, 0.5, 1, 5, 10, 50, 100]}
     clf = GridSearchCV(svr, parameters, cv=5, scoring='accuracy')
     clf.fit(training_set_features, training_set_labels)
     predicted_lab_test = clf.predict(testing_set_features)
+    best_score = clf.best_score_
+    test_score = accuracy_score(testing_set_labels, predicted_lab_test, normalize=True)
+    return method, best_score, test_score
+
+
+def knn_classification(training_set_features, testing_set_features, training_set_labels, testing_set_labels):
+    """
+    This function conducts a K nearest neighbours classification with 5 folds CV using a grid search to fit to best 
+    number of number and number of leafs
+    :param training_set_features: multi-dimensional array representing training set features.
+    :param testing_set_features: multi-dimensional array representing testing set features.
+    :param training_set_labels: uni-dimensional array representing training set labels.
+    :param testing_set_labels: uni-dimensional array representing testing set labels.
+    :return: Three elements tuple respectively method used (String), best accuracy score on parameters grid in 5-folds 
+    CV (float), accuracy score on test set
+    """
+    from sklearn import neighbors
+    from sklearn.model_selection import GridSearchCV
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import accuracy_score
+    method = "knn"
+    scaler = StandardScaler()
+    scaled_feats_train = scaler.fit_transform(training_set_features)
+    svr = neighbors.KNeighborsClassifier(metric='euclidean')
+    parameters = {'n_neighbors': range(1, 51), 'leaf_size': [i for i in range(1,61) if i%5 == 0]}
+    clf = GridSearchCV(svr, parameters, cv=5, scoring='accuracy')
+    clf.fit(scaled_feats_train, training_set_labels)
+    scaled_feats_test = scaler.transform(testing_set_features)
+    predicted_lab_test = clf.predict(scaled_feats_test)
     best_score = clf.best_score_
     test_score = accuracy_score(testing_set_labels, predicted_lab_test, normalize=True)
     return method, best_score, test_score
@@ -211,5 +239,7 @@ if __name__ == "__main__":
     m, b_score, t_score = rbf_svm_classification(feats_train, feats_test, lab_train, lab_test)
     output_csv_writer(m, b_score, t_score)
     m, b_score, t_score = logistic_classification(feats_train, feats_test, lab_train, lab_test)
+    output_csv_writer(m, b_score, t_score)
+    m, b_score, t_score = knn_classification(feats_train, feats_test, lab_train, lab_test)
     output_csv_writer(m, b_score, t_score)
     # print clf.best_params_
