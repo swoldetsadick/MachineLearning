@@ -213,6 +213,36 @@ def knn_classification(training_set_features, testing_set_features, training_set
     return method, best_score, test_score
 
 
+def tree_classification(training_set_features, testing_set_features, training_set_labels, testing_set_labels):
+    """
+    This function conducts a tree classification with 5 folds CV using a grid search to fit to best number of maximum 
+    tree depth and minimum number after which a leaf cannot split further.
+    :param training_set_features: multi-dimensional array representing training set features.
+    :param testing_set_features: multi-dimensional array representing testing set features.
+    :param training_set_labels: uni-dimensional array representing training set labels.
+    :param testing_set_labels: uni-dimensional array representing testing set labels.
+    :return: Three elements tuple respectively method used (String), best accuracy score on parameters grid in 5-folds 
+    CV (float), accuracy score on test set
+    """
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.model_selection import GridSearchCV
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import accuracy_score
+    method = "decision_tree"
+    scaler = StandardScaler()
+    scaled_feats_train = scaler.fit_transform(training_set_features)
+    svr = DecisionTreeClassifier(random_state=0)
+    parameters = {'max_depth': range(1, 51), 'min_samples_split': range(2, 11)}
+    clf = GridSearchCV(svr, parameters, cv=5, scoring='accuracy')
+    clf.fit(scaled_feats_train, training_set_labels)
+    scaled_feats_test = scaler.transform(testing_set_features)
+    predicted_lab_test = clf.predict(scaled_feats_test)
+    best_score = clf.best_score_
+    test_score = accuracy_score(testing_set_labels, predicted_lab_test, normalize=True)
+    print clf.best_params_
+    return method, best_score, test_score
+
+
 def output_csv_writer(method, best_score, test_score):
     """
     This function writes an output in a file called output3.csv
@@ -241,5 +271,7 @@ if __name__ == "__main__":
     m, b_score, t_score = logistic_classification(feats_train, feats_test, lab_train, lab_test)
     output_csv_writer(m, b_score, t_score)
     m, b_score, t_score = knn_classification(feats_train, feats_test, lab_train, lab_test)
+    output_csv_writer(m, b_score, t_score)
+    m, b_score, t_score = tree_classification(feats_train, feats_test, lab_train, lab_test)
     output_csv_writer(m, b_score, t_score)
     # print clf.best_params_
