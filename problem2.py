@@ -13,8 +13,8 @@ def parse_system_arguments():
     :return: tuple of input and output file names.
     """
     import sys
-    input, output = sys.argv[1], sys.argv[2]
-    return str(input), str(output)
+    input_t, output_t = sys.argv[1], sys.argv[2]
+    return str(input_t), str(output_t)
 
 
 def csv_dataset_reader(path):
@@ -36,15 +36,32 @@ def center_and_scale_data(data):
      :param data: A pandas dataframe.
      :return: A Pandas dataframe with scaled and centered data.
      """
-    a_mean, a_std = datum['age'].mean(), datum['age'].std()
-    datum['age'] = datum['age'].apply(lambda x: ((x - a_mean) / a_std))
-    w_mean, w_std = datum['weight'].mean(), datum['weight'].std()
-    datum['weight'] = datum['weight'].apply(lambda x: ((x - w_mean) / w_std))
-    datum['intercept'] = datum['height'].map(lambda x: 1 if x else 1)
-    return datum
+    a_mean, a_std = data['age'].mean(), data['age'].std()
+    data['age'] = data['age'].apply(lambda x: ((x - a_mean) / a_std))
+    w_mean, w_std = data['weight'].mean(), data['weight'].std()
+    data['weight'] = data['weight'].apply(lambda x: ((x - w_mean) / w_std))
+    data['intercept'] = data['height'].map(lambda x: 1 if x else 1)
+    return data
+
+
+def output_csv_writer(output_path, method, best_score, test_score):
+    """
+    This function writes an output in a file called output3.csv
+    :param output_path: The name and path in/with which the output file is written.
+    :param method: The method used to build classification
+    :param best_score: Best accuracy score on parameters grid in 5-folds CV (float)
+    :param test_score: Accuracy score on test set
+    :return: None
+    """
+    with open("./" + output_path, 'w') as f:
+        f.write("%s,%f,%f\n" % (str(method), float(best_score), float(test_score)))
+    f.close()
+    return
 
 
 if __name__ == "__main__":
     input_file, output_file = parse_system_arguments()
     datum = csv_dataset_reader("./" + input_file)
     standardized_datum = center_and_scale_data(datum)
+
+    # output_csv_writer(output_file, method, best_score, test_score)
