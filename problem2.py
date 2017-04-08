@@ -59,9 +59,84 @@ def output_csv_writer(output_path, method, best_score, test_score):
     return
 
 
+def loss_function(data, beta_0=0, beta_1=0, beta_2=0):
+    """
+    This function calculates the squared error between estimations and real observations
+    :param data: Pandas dataframe on which estimation is conducted
+    :param beta_0: weight associated to the intercept
+    :param beta_1: weight associated to the first feature "age"
+    :param beta_2: weight associated to the second feature "weight"
+    :return: Mean Squared Error of Estimation. 
+    """
+    data['error'] = data.apply(lambda row: square_of_error(row['height'], beta_0, row['intercept'], beta_1, row['age'],
+                                                           beta_2, row['weight']), axis=1)
+    error = data['error'].sum()
+    data.drop('error', axis=1, inplace=True)
+    return error
+
+
+def square_of_error(y, beta_0, x_0, beta_1, x_1, beta_2, x_2, principal=None, gradient=False, data_length=0):
+    """
+    This function calculates the squared errors.
+    :param y: label of the dataframe height value
+    :param beta_0: weight associated to the intercept
+    :param x_0: intercept value
+    :param beta_1: weight associated to the first feature "age"
+    :param x_1: age value
+    :param beta_2: weight associated to the second feature "weight"
+    :param x_2: weight value
+    :param principal: optional if for gradient descent indicates feature considered
+    :param gradient: a boolean if estimation is used for gradient or not
+    :param data_length: length of estimated data.
+    :return: Squared Error if not gradient, gradient step if gradient
+    """
+    if not gradient:
+        return (y - (beta_0 * x_0 + beta_1 * x_1 + beta_2 * x_2)) ** 2
+    else:
+        return -(1 / float(data_length)) * principal * ((beta_0 * x_0 + beta_1 * x_1 + beta_2 * x_2) - y)
+
+
+def one_gradient_step(data, alpha, beta_0=0, beta_1=0, beta_2=0):
+    """
+    This function calculates a gradient step.
+    :param data: Pandas dataframe on which estimation is conducted
+    :param alpha: a float for learning rate
+    :param beta_0: weight associated to the intercept
+    :param beta_1: weight associated to the first feature "age"
+    :param beta_2: weight associated to the second feature "weight"
+    :return: Mean Squared Error of Estimation. 
+    """
+    l = data.shape[0]
+    data['err_it'] = data.apply(
+        lambda row: square_of_error(row['height'], beta_0, row['intercept'], beta_1, row['age'], beta_2, row['weight'],
+                                    principal=row['intercept'], gradient=True, data_length=l), axis=1)
+    data['err_ag'] = data.apply(
+        lambda row: square_of_error(row['height'], beta_0, row['intercept'], beta_1, row['age'], beta_2, row['weight'],
+                                    principal=row['age'], gradient=True, data_length=l), axis=1)
+    data['err_wt'] = data.apply(
+        lambda row: square_of_error(row['height'], beta_0, row['intercept'], beta_1, row['age'], beta_2, row['weight'],
+                                    principal=row['weight'], gradient=True, data_length=l), axis=1)
+    beta_0 += alpha * data['err_it'].sum()
+    beta_1 += alpha * data['err_ag'].sum()
+    beta_2 += alpha * data['err_wt'].sum()
+    data.drop('err_it', axis=1, inplace=True)
+    data.drop('err_ag', axis=1, inplace=True)
+    data.drop('err_wt', axis=1, inplace=True)
+    return beta_0, beta_1, beta_2
+
+
 if __name__ == "__main__":
     input_file, output_file = parse_system_arguments()
     datum = csv_dataset_reader("./" + input_file)
     standardized_datum = center_and_scale_data(datum)
+    print loss_function(standardized_datum)
+    b_0, b_1, b_2 = one_gradient_step(standardized_datum, .1)
+    print loss_function(standardized_datum, b_0, b_1, b_2)
+    i = 0
+    while i < 1000:
+        b_0, b_1, b_2 = one_gradient_step(standardized_datum, .1, b_0, b_1, b_2)
+        print i, loss_function(standardized_datum, b_0, b_1, b_2)
+        i += 1
+    print b_0, b_1, b_2
 
     # output_csv_writer(output_file, method, best_score, test_score)
