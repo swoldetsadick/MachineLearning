@@ -44,17 +44,19 @@ def center_and_scale_data(data):
     return data
 
 
-def output_csv_writer(output_path, method, best_score, test_score):
+def output_csv_writer(output_path, learning_rate, converge, beta_0, beta_1, beta_2):
     """
-    This function writes an output in a file called output3.csv
+    This function writes an output in a file whose name is given by first parameter.
     :param output_path: The name and path in/with which the output file is written.
-    :param method: The method used to build classification
-    :param best_score: Best accuracy score on parameters grid in 5-folds CV (float)
-    :param test_score: Accuracy score on test set
+    :param learning_rate: The learning rate used.
+    :param converge: an int representing the number of iteration of GD algorithm.
+    :param beta_0: weight associated to the intercept.
+    :param beta_1: weight associated to the first feature "age".
+    :param beta_2: weight associated to the second feature "weight".
     :return: None
     """
-    with open("./" + output_path, 'w') as f:
-        f.write("%s,%f,%f\n" % (str(method), float(best_score), float(test_score)))
+    with open("./" + output_path, 'a') as f:
+        f.write("%s,%s,%s,%s,%s\n" % (learning_rate, converge, beta_0, beta_1, beta_2))
     f.close()
     return
 
@@ -63,9 +65,9 @@ def loss_function(data, beta_0=0, beta_1=0, beta_2=0):
     """
     This function calculates the squared error between estimations and real observations
     :param data: Pandas dataframe on which estimation is conducted
-    :param beta_0: weight associated to the intercept
-    :param beta_1: weight associated to the first feature "age"
-    :param beta_2: weight associated to the second feature "weight"
+    :param beta_0: weight associated to the intercept.
+    :param beta_1: weight associated to the first feature "age".
+    :param beta_2: weight associated to the second feature "weight".
     :return: Mean Squared Error of Estimation. 
     """
     data['error'] = data.apply(lambda row: square_of_error(row['height'], beta_0, row['intercept'], beta_1, row['age'],
@@ -125,18 +127,26 @@ def one_gradient_step(data, alpha, beta_0=0, beta_1=0, beta_2=0):
     return beta_0, beta_1, beta_2
 
 
+def converge_it(data, converge_num, alphas, out_path):
+    losses = []
+    while alphas:
+        alpha = alphas.pop(0)
+        b_0, b_1, b_2 = 0, 0, 0
+        i = 0
+        if not alphas:
+            converge_num = 500
+        while i < converge_num:
+            b_0, b_1, b_2 = one_gradient_step(data, alpha, b_0, b_1, b_2)
+            i += 1
+        losses.append(loss_function(data, b_0, b_1, b_2))
+        output_csv_writer(out_path, alpha, converge_num, b_0, b_1, b_2)
+    return losses
+
+
 if __name__ == "__main__":
     input_file, output_file = parse_system_arguments()
     datum = csv_dataset_reader("./" + input_file)
     standardized_datum = center_and_scale_data(datum)
-    print loss_function(standardized_datum)
-    b_0, b_1, b_2 = one_gradient_step(standardized_datum, .1)
-    print loss_function(standardized_datum, b_0, b_1, b_2)
-    i = 0
-    while i < 1000:
-        b_0, b_1, b_2 = one_gradient_step(standardized_datum, .1, b_0, b_1, b_2)
-        print i, loss_function(standardized_datum, b_0, b_1, b_2)
-        i += 1
-    print b_0, b_1, b_2
-
-    # output_csv_writer(output_file, method, best_score, test_score)
+    learning_rates = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10, .7]
+    iteration = 100
+    loser = converge_it(standardized_datum, iteration, learning_rates, output_file)
